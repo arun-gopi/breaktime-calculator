@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: breaktime_calculator
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme123}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - SESSION_SECRET_KEY=${SESSION_SECRET_KEY:-change-this-in-production}
+      - SECURE_COOKIES=${SECURE_COOKIES:-true}
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-changeme123}@postgres:5432/breaktime_calculator
+    volumes:
+      # Named volumes for persistent data storage
+      - app_uploads:/app/uploads
+      - app_output:/app/output
+      # Optional: Bind mount for database backups
+      - ./backups:/app/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Database backup service
+  db-backup:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data:ro
+      - ./backups:/backups
+    environment:
+      - PGPASSWORD=${POSTGRES_PASSWORD:-changeme123}
+    command: |
+      sh -c "
+        while true; do
+          echo 'Creating database backup...'
+          pg_dump -h postgres -U postgres -d breaktime_calculator > /backups/breaktime_calculator_$(date +%Y%m%d_%H%M%S).sql
+          echo 'Backup completed'
+          # Keep only last 7 days of backups
+          find /backups -name '*.sql' -mtime +7 -delete
+          sleep 86400  # Run daily
+        done
+      "
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+# Named volumes for persistent data storage
+volumes:
+  app_uploads:
+    driver: local
+  app_output:
+    driver: local
+  postgres_data:
+    driver: local

@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Error - Break Time Calculator{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Error Header -->
+    <div class="bg-red-50 border border-red-200 rounded-lg p-6 mb-8">
+        <div class="flex items-center">
+            <i class="fas fa-exclamation-triangle text-red-500 text-3xl mr-4"></i>
+            <div>
+                <h1 class="text-2xl font-bold text-red-800">Processing Error</h1>
+                <p class="text-red-700">There was an error processing your file</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Details -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">Error Details</h2>
+        <div class="bg-red-50 border border-red-200 rounded p-4">
+            <code class="text-red-800">{{ error }}</code>
+        </div>
+    </div>
+
+    <!-- Common Issues -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">Common Issues</h2>
+        <div class="space-y-4">
+            <div class="flex items-start">
+                <i class="fas fa-exclamation-circle text-yellow-500 mr-3 mt-1"></i>
+                <div>
+                    <h3 class="font-semibold text-gray-700">Missing Required Columns</h3>
+                    <p class="text-gray-600 text-sm">Ensure your CSV contains: ProviderId, ProviderFirstName, ProviderLastName, DateOfService, TimeWorkedInHours</p>
+                </div>
+            </div>
+            <div class="flex items-start">
+                <i class="fas fa-exclamation-circle text-yellow-500 mr-3 mt-1"></i>
+                <div>
+                    <h3 class="font-semibold text-gray-700">Invalid File Format</h3>
+                    <p class="text-gray-600 text-sm">Only CSV files are supported. Make sure your file has a .csv extension</p>
+                </div>
+            </div>
+            <div class="flex items-start">
+                <i class="fas fa-exclamation-circle text-yellow-500 mr-3 mt-1"></i>
+                <div>
+                    <h3 class="font-semibold text-gray-700">Data Format Issues</h3>
+                    <p class="text-gray-600 text-sm">Check that TimeWorkedInHours contains numeric values and dates are properly formatted</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex justify-center space-x-4">
+        <a href="/" class="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition-colors">
+            <i class="fas fa-arrow-left mr-2"></i>
+            Try Again
+        </a>
+        <a href="/history" class="bg-gray-600 text-white px-6 py-3 rounded-md hover:bg-gray-700 transition-colors">
+            <i class="fas fa-history mr-2"></i>
+            View History
+        </a>
+    </div>
+</div>
+{% endblock %}

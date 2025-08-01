@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}History - Break Time Calculator{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800">
+                <i class="fas fa-history text-blue-600 mr-3"></i>
+                Upload History
+            </h1>
+            <p class="text-gray-600">View and download previously processed files including audit reports</p>
+        </div>
+        <a href="/" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
+            <i class="fas fa-plus mr-2"></i>
+            New Upload
+        </a>
+    </div>
+
+    {% if uploads %}
+    <!-- Files Table -->
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            File Name
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Upload Date
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Records
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Providers
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Date Range
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Actions
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for upload in uploads %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <i class="fas fa-file-csv text-green-600 mr-3"></i>
+                                <div class="text-sm font-medium text-gray-900">{{ upload.original_filename }}</div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ upload.upload_date.strftime('%Y-%m-%d %H:%M:%S') if upload.upload_date else '-' }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if upload.processed %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                <i class="fas fa-check-circle mr-1"></i>
+                                Processed
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                <i class="fas fa-exclamation-circle mr-1"></i>
+                                Failed
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ upload.total_records if upload.total_records else '-' }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ upload.total_providers if upload.total_providers else '-' }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ upload.date_range if upload.date_range else '-' }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            {% if upload.processed %}
+                            <div class="flex space-x-2">
+                                <a href="/download/daily/{{ upload.id }}" 
+                                   class="text-blue-600 hover:text-blue-700 transition-colors" 
+                                   title="Download Daily Report">
+                                    <i class="fas fa-table"></i>
+                                </a>
+                                <a href="/download/summary/{{ upload.id }}" 
+                                   class="text-green-600 hover:text-green-700 transition-colors" 
+                                   title="Download Summary Report">
+                                    <i class="fas fa-chart-pie"></i>
+                                </a>
+                                <a href="/download/provider-date/{{ upload.id }}" 
+                                   class="text-purple-600 hover:text-purple-700 transition-colors" 
+                                   title="Download Provider-Date Totals">
+                                    <i class="fas fa-calendar-alt"></i>
+                                </a>
+                                <a href="/download/audit/{{ upload.id }}" 
+                                   class="text-orange-600 hover:text-orange-700 transition-colors" 
+                                   title="Download Audit Report">
+                                    <i class="fas fa-shield-alt"></i>
+                                </a>
+                            </div>
+                            {% else %}
+                            <span class="text-gray-400">
+                                <i class="fas fa-ban"></i>
+                            </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="mt-6 bg-gray-50 rounded-lg p-4">
+        <h3 class="text-sm font-medium text-gray-800 mb-2">Download Legend:</h3>
+        <div class="flex flex-wrap gap-6 text-sm text-gray-600">
+            <div class="flex items-center">
+                <i class="fas fa-table text-blue-600 mr-2"></i>
+                Daily Breakdown Report
+            </div>
+            <div class="flex items-center">
+                <i class="fas fa-chart-pie text-green-600 mr-2"></i>
+                Provider Summary Report
+            </div>
+            <div class="flex items-center">
+                <i class="fas fa-calendar-alt text-purple-600 mr-2"></i>
+                Provider-Date Totals Report
+            </div>
+            <div class="flex items-center">
+                <i class="fas fa-shield-alt text-orange-600 mr-2"></i>
+                Audit Report (Data quality & timing analysis)
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- Empty State -->
+    <div class="text-center py-12">
+        <i class="fas fa-history text-gray-300 text-6xl mb-4"></i>
+        <h3 class="text-xl font-medium text-gray-900 mb-2">No uploads yet</h3>
+        <p class="text-gray-500 mb-6">Upload your first timesheet CSV to get started</p>
+        <a href="/" class="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition-colors">
+            <i class="fas fa-upload mr-2"></i>
+            Upload File
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

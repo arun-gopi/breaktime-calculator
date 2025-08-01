@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: breaktime_calculator
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme123}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - SESSION_SECRET_KEY=${SESSION_SECRET_KEY:-dev-secret-key-for-local-testing}
+      - SECURE_COOKIES=${SECURE_COOKIES:-false}
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-changeme123}@postgres:5432/breaktime_calculator
+    volumes:
+      # Named volumes for better persistence
+      - app_uploads:/app/uploads
+      - app_output:/app/output
+      # Bind mounts for local development (optional - comment out for production)
+      # - ./uploads:/app/uploads
+      # - ./output:/app/output
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# Named volumes for persistent data storage
+volumes:
+  app_uploads:
+    driver: local
+  app_output:
+    driver: local
+  postgres_data:
+    driver: local

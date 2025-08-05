@@ -4,7 +4,7 @@ from fastapi.templating import Jinja2Templates
 import os
 from dotenv import load_dotenv
 
-from app.api.routes import auth, upload, files
+from app.api.routes import auth, upload, files, config
 from app.core.database import db_manager
 
 # Load environment variables
@@ -27,6 +27,7 @@ templates = Jinja2Templates(directory="templates")
 app.include_router(auth.router, tags=["authentication"])
 app.include_router(upload.router, tags=["file-upload"])
 app.include_router(files.router, tags=["file-management"])
+app.include_router(config.router, tags=["configuration"])
 
 @app.on_event("startup")
 async def startup_event():

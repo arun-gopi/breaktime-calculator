@@ -71,7 +71,7 @@ async def reset_config(request: Request, user: dict = Depends(get_current_user))
     """Reset configuration to defaults"""
     # Reset to default values
     defaults = [
-        ('excluded_procedure_codes', '10 Minute Break,Lead BT,Lunch Break,Sick Leave', 'list', 'Comma-separated list of procedure codes to exclude from work time calculations'),
+        ('excluded_procedure_codes', 'Late Cancel by Client,10 Minute Break,Lead BT,Lunch Break,Sick Leave', 'list', 'Comma-separated list of procedure codes to exclude from work time calculations'),
         ('break_threshold_1', '4.0', 'float', 'First break threshold in hours'),
         ('break_threshold_2', '8.0', 'float', 'Second break threshold in hours'),
         ('break_threshold_3', '12.0', 'float', 'Third break threshold in hours'),

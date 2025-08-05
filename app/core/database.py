@@ -4,7 +4,7 @@ PostgreSQL-only implementation
 """
 import os
 import hashlib
-from typing import Optional, List, Tuple, Any, Union
+from typing import Optional, List, Tuple, Any, Union, Dict
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -88,12 +88,29 @@ class DatabaseManager:
             )
         '''
         
+        # Configuration table
+        config_table = '''
+            CREATE TABLE IF NOT EXISTS configurations (
+                id SERIAL PRIMARY KEY,
+                config_key TEXT UNIQUE NOT NULL,
+                config_value TEXT NOT NULL,
+                config_type TEXT NOT NULL DEFAULT 'string',
+                description TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        '''
+        
         # Execute table creation
         self.execute_query(users_table)
         self.execute_query(uploads_table)
+        self.execute_query(config_table)
         
         # Run migrations
         self._run_migrations()
+        
+        # Initialize default configurations
+        self._init_default_configs()
         
         # Check if we need to migrate existing data or create default user
         users_result = self.execute_query("SELECT COUNT(*) as count FROM users", fetch_one=True)
@@ -142,7 +159,7 @@ class DatabaseManager:
             cursor = conn.cursor()
             cursor.execute(query, (username, email, password_hash, full_name))
             result = cursor.fetchone()
-            user_id = result['id'] if result else 0
+            user_id = result['id'] if result is not None else 0
             conn.commit()
             return user_id
         finally:
@@ -199,6 +216,124 @@ class DatabaseManager:
         query = "SELECT * FROM file_uploads WHERE id = %s"
         result = self.execute_query(query, (upload_id,), fetch_one=True)
         return result if isinstance(result, dict) else None
+    
+    def _init_default_configs(self):
+        """Initialize default configuration values"""
+        defaults = [
+            ('excluded_procedure_codes', 'Late Cancel by Client,10 Minute Break,Lead BT,Lunch Break,Sick Leave', 'list', 'Comma-separated list of procedure codes to exclude from work time calculations'),
+            ('break_threshold_1', '4.0', 'float', 'First break threshold in hours'),
+            ('break_threshold_2', '8.0', 'float', 'Second break threshold in hours'),
+            ('break_threshold_3', '12.0', 'float', 'Third break threshold in hours'),
+            ('break_duration_1', '10', 'int', 'Duration for first break in minutes'),
+            ('break_duration_2', '20', 'int', 'Total duration for two breaks in minutes'),
+            ('break_duration_3', '30', 'int', 'Total duration for three breaks in minutes'),
+            ('continuous_hours', 'true', 'boolean', 'Use continuous hours for break calculations: timestamps when available, otherwise work + drive time'),
+        ]
+        
+        for config_key, config_value, config_type, description in defaults:
+            # Check if config already exists
+            existing = self.get_config(config_key)
+            if not existing:
+                self.set_config(config_key, config_value, config_type, description)
+    
+    def get_config(self, config_key: str) -> Optional[dict]:
+        """Get configuration value by key"""
+        query = "SELECT * FROM configurations WHERE config_key = %s"
+        result = self.execute_query(query, (config_key,), fetch_one=True)
+        return result if isinstance(result, dict) else None
+    
+    def set_config(self, config_key: str, config_value: str, config_type: str = 'string', description: str = '') -> None:
+        """Set configuration value"""
+        # Check if config exists
+        existing = self.get_config(config_key)
+        
+        if existing:
+            # Update existing config
+            query = '''
+                UPDATE configurations 
+                SET config_value = %s, config_type = %s, description = %s, updated_at = CURRENT_TIMESTAMP 
+                WHERE config_key = %s
+            '''
+            self.execute_query(query, (config_value, config_type, description, config_key))
+        else:
+            # Insert new config
+            query = '''
+                INSERT INTO configurations (config_key, config_value, config_type, description) 
+                VALUES (%s, %s, %s, %s)
+            '''
+            self.execute_query(query, (config_key, config_value, config_type, description))
+    
+    def get_all_config(self) -> List[dict]:
+        """Get all configuration values"""
+        query = "SELECT * FROM configurations ORDER BY config_key"
+        result = self.execute_query(query, fetch_all=True)
+        return result if isinstance(result, list) else []
+    
+    def get_config_value(self, config_key: str, default_value: Any = None) -> Any:
+        """Get configuration value with type conversion"""
+        config = self.get_config(config_key)
+        if not config:
+            return default_value
+        
+        config_value = config['config_value']
+        config_type = config['config_type']
+        
+        try:
+            if config_type == 'int':
+                return int(config_value)
+            elif config_type == 'float':
+                return float(config_value)
+            elif config_type == 'boolean':
+                return config_value.lower() in ('true', '1', 'yes', 'on')
+            elif config_type == 'list':
+                return [item.strip() for item in config_value.split(',') if item.strip()]
+            else:
+                return config_value
+        except (ValueError, AttributeError):
+            return default_value
+    
+    def get_config_values(self, config_keys: List[str], defaults: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Get multiple configuration values in a single database call for better performance"""
+        if not config_keys:
+            return {}
+        
+        defaults = defaults or {}
+        placeholders = ','.join(['%s'] * len(config_keys))
+        query = f"SELECT config_key, config_value, config_type FROM configurations WHERE config_key IN ({placeholders})"
+        
+        result = self.execute_query(query, tuple(config_keys), fetch_all=True)
+        
+        # Process results and apply type conversion
+        config_values = {}
+        found_keys = set()
+        
+        if isinstance(result, list):
+            for row in result:
+                key = row['config_key']
+                value = row['config_value']
+                config_type = row['config_type']
+                found_keys.add(key)
+                
+                try:
+                    if config_type == 'int':
+                        config_values[key] = int(value)
+                    elif config_type == 'float':
+                        config_values[key] = float(value)
+                    elif config_type == 'boolean':
+                        config_values[key] = value.lower() in ('true', '1', 'yes', 'on')
+                    elif config_type == 'list':
+                        config_values[key] = [item.strip() for item in value.split(',') if item.strip()]
+                    else:
+                        config_values[key] = value
+                except (ValueError, AttributeError):
+                    config_values[key] = defaults.get(key)
+        
+        # Add default values for missing keys
+        for key in config_keys:
+            if key not in found_keys:
+                config_values[key] = defaults.get(key)
+        
+        return config_values
 
 # Global database manager instance
 db_manager = DatabaseManager()

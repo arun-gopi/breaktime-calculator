@@ -162,22 +162,30 @@
                     <thead class="bg-gray-50">
                         <tr>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Provider</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hours Worked</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Work Hours</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Drive Hours</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Hours</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Break Minutes</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Timesheets</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200">
-                        {% for _, row in result.summary_data.head(10).iterrows() %}
+                        {% for row in result.summary_data %}
                         <tr class="hover:bg-gray-50">
                             <td class="px-4 py-3 text-sm text-gray-900">{{ row.ProviderFullName }}</td>
                             <td class="px-4 py-3 text-sm text-gray-900">{{ "%.2f"|format(row.TimeWorkedInHours) }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-900">{{ "%.2f"|format(row.DriveTimeHours) }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-900">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    {{ "%.2f"|format(row.TotalWorkedHours) }}h
+                                </span>
+                            </td>
                             <td class="px-4 py-3 text-sm text-gray-900">
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                     {{ row.RequiredBreakMinutes }} min
                                 </span>
                             </td>
-                            <td class="px-4 py-3 text-sm text-gray-900">{{ row.WorkDays }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-900">{{ row['Timesheet Count'] }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -185,7 +193,7 @@
             </div>
             {% if result.summary_data|length > 10 %}
             <p class="text-sm text-gray-500 mt-2">
-                Showing top 10 of {{ result.summary_data|length }} providers. Download the full report for complete data.
+                Showing top 10 of {{ result.total_providers }} providers. Download the full report for complete data.
             </p>
             {% endif %}
         </div>

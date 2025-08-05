@@ -21,21 +21,21 @@
             <div class="space-y-3">
                 <div class="flex items-center p-3 bg-green-50 rounded-lg">
                     <i class="fas fa-coffee text-green-600 mr-3"></i>
-                    <span><strong>3.5–6 hours:</strong> 1 break (10 minutes)</span>
+                    <span><strong>>4 hours:</strong> 1 break (10 minutes)</span>
                 </div>
                 <div class="flex items-center p-3 bg-blue-50 rounded-lg">
                     <i class="fas fa-coffee text-blue-600 mr-3"></i>
-                    <span><strong>6–10 hours:</strong> 2 breaks (20 minutes)</span>
+                    <span><strong>>8 hours:</strong> 2 breaks (20 minutes)</span>
                 </div>
             </div>
             <div class="space-y-3">
                 <div class="flex items-center p-3 bg-purple-50 rounded-lg">
                     <i class="fas fa-coffee text-purple-600 mr-3"></i>
-                    <span><strong>10–14 hours:</strong> 3 breaks (30 minutes)</span>
+                    <span><strong>>12 hours:</strong> 3 breaks (30 minutes)</span>
                 </div>
                 <div class="flex items-center p-3 bg-gray-50 rounded-lg">
                     <i class="fas fa-times text-gray-500 mr-3"></i>
-                    <span><strong>Under 3.5 hours:</strong> No break required</span>
+                    <span><strong>Under 4 hours:</strong> No break required</span>
                 </div>
             </div>
         </div>
@@ -44,6 +44,23 @@
                 <i class="fas fa-exclamation-triangle mr-2"></i>
                 <strong>Note:</strong> Employees get a paid 10-minute rest break for every 4 hours worked or major fraction thereof.
             </p>
+        </div>
+    </div>
+
+    <!-- Configuration Access Card -->
+    <div class="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg p-6 mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">
+                    <i class="fas fa-cog text-purple-600 mr-2"></i>
+                    Configuration Settings
+                </h3>
+                <p class="text-gray-600 text-sm">Customize break time thresholds, durations, and excluded procedure codes to match your organization's requirements.</p>
+            </div>
+            <a href="/config" class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors flex items-center shadow-md">
+                <i class="fas fa-cog mr-2"></i>
+                Manage Configuration
+            </a>
         </div>
     </div>
 
@@ -101,6 +118,7 @@
                     <div class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i>DateTimeTo</div>
                     <div class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i>TimeWorkedInHours</div>
                     <div class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i>ProcedureCode</div>
+                    <div class="flex items-center"><i class="fas fa-check text-blue-500 mr-2"></i>DriveTimeMinutes <span class="text-xs text-gray-500">(optional)</span></div>
                 </div>
                 <div class="mt-3 p-3 bg-green-50 rounded-lg">
                     <p class="text-sm text-green-700">
@@ -120,11 +138,17 @@
                         <strong>Important:</strong> Break and lunch time entries are excluded from total work hours when calculating required breaks. Only actual work time counts toward break requirements.
                     </p>
                 </div>
+                <div class="mt-2 p-3 bg-indigo-50 rounded-lg">
+                    <p class="text-sm text-indigo-700">
+                        <i class="fas fa-car mr-2"></i>
+                        <strong>Drive Time:</strong> If DriveTimeMinutes column is included, drive time will be added to work hours for break calculations. This provides more accurate total working time calculations.
+                    </p>
+                </div>
             </div>
 
             <button type="submit" class="w-full bg-green-600 text-white py-3 px-6 rounded-md hover:bg-green-700 transition-colors text-lg font-semibold">
-                <i class="fas fa-calculator mr-2"></i>
-                Calculate Break Times
+                <i class="fas fa-play mr-2"></i>
+                Start Processing
             </button>
         </form>
     </div>

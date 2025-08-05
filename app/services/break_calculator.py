@@ -21,11 +21,11 @@ def calculate_break_time(hours_worked: float) -> int:
     Returns:
         Required break time in minutes
     """
-    if hours_worked >= 10:
+    if hours_worked >= 12:
         return 3 * 10  # 3 breaks of 10 minutes each
-    elif hours_worked >= 6:
+    elif hours_worked >= 8:
         return 2 * 10  # 2 breaks of 10 minutes each
-    elif hours_worked >= 3.5:
+    elif hours_worked >= 4:
         return 1 * 10  # 1 break of 10 minutes
     else:
         return 0  # No break required

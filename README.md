@@ -29,10 +29,10 @@ This calculator processes timesheet CSV data through a user-friendly web interfa
 
 The calculator follows these break time requirements:
 
-- **3.5–6 hours worked**: 1 break (10 minutes)
-- **6–10 hours worked**: 2 breaks (20 minutes total)
-- **10–14 hours worked**: 3 breaks (30 minutes total)
-- **Less than 3.5 hours**: No break required
+- **>4 hours worked**: 1 break (10 minutes)
+- **>8 hours worked**: 2 breaks (20 minutes total)
+- **>12 hours worked**: 3 breaks (30 minutes total)
+- **Less than 4 hours**: No break required
 
 *Note: Employees are entitled to a paid 10-minute rest break for every 4 hours worked or major fraction thereof.*
 

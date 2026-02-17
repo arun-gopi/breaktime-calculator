@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}Processing - Break Time Calculator{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="text-center mb-8">
+        <h1 class="text-4xl font-bold text-gray-800 mb-4">
+            <i class="fas fa-cog fa-spin text-blue-600 mr-3"></i>
+            Processing Your File
+        </h1>
+        <p class="text-lg text-gray-600">Please wait while we calculate break times for your timesheet data</p>
+        <p class="text-sm text-gray-500 mt-2">File: <strong>{{ filename }}</strong></p>
+    </div>
+
+    <!-- Progress Card -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <div class="mb-4">
+            <div class="flex justify-between items-center mb-2">
+                <h2 class="text-xl font-semibold text-gray-800">Processing Progress</h2>
+                <span id="progress-percentage" class="text-lg font-bold text-blue-600">0%</span>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div class="w-full bg-gray-200 rounded-full h-4 mb-4">
+                <div id="progress-bar" class="bg-blue-600 h-4 rounded-full transition-all duration-300 ease-out" style="width: 0%"></div>
+            </div>
+            
+            <!-- Status Message -->
+            <div class="text-center">
+                <p id="status-message" class="text-gray-600">Initializing...</p>
+            </div>
+        </div>
+
+        <!-- Processing Steps -->
+        <div class="mt-6">
+            <h3 class="text-lg font-semibold text-gray-700 mb-3">Processing Steps</h3>
+            <div class="space-y-2">
+                <div class="flex items-center" id="step-validate">
+                    <i class="fas fa-circle text-gray-400 mr-3"></i>
+                    <span class="text-gray-600">Validating file structure</span>
+                </div>
+                <div class="flex items-center" id="step-process">
+                    <i class="fas fa-circle text-gray-400 mr-3"></i>
+                    <span class="text-gray-600">Processing work hours</span>
+                </div>
+                <div class="flex items-center" id="step-calculate">
+                    <i class="fas fa-circle text-gray-400 mr-3"></i>
+                    <span class="text-gray-600">Calculating break requirements</span>
+                </div>
+                <div class="flex items-center" id="step-audit">
+                    <i class="fas fa-circle text-gray-400 mr-3"></i>
+                    <span class="text-gray-600">Running data quality audit</span>
+                </div>
+                <div class="flex items-center" id="step-generate">
+                    <i class="fas fa-circle text-gray-400 mr-3"></i>
+                    <span class="text-gray-600">Generating reports</span>
+                </div>
+                <div class="flex items-center" id="step-complete">
+                    <i class="fas fa-circle text-gray-400 mr-3"></i>
+                    <span class="text-gray-600">Finalizing results</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Information Card -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+        <h3 class="text-lg font-semibold text-blue-800 mb-3">
+            <i class="fas fa-info-circle mr-2"></i>
+            What's Happening?
+        </h3>
+        <ul class="text-blue-700 space-y-2">
+            <li><i class="fas fa-check-circle mr-2"></i>Validating your CSV file format and data quality</li>
+            <li><i class="fas fa-calculator mr-2"></i>Calculating work hours and break requirements for each provider</li>
+            <li><i class="fas fa-search mr-2"></i>Analyzing break compliance and identifying issues</li>
+            <li><i class="fas fa-file-alt mr-2"></i>Generating detailed reports and summaries</li>
+        </ul>
+        <div class="mt-4 p-3 bg-blue-100 rounded-lg">
+            <p class="text-sm text-blue-800">
+                <i class="fas fa-clock mr-2"></i>
+                Processing time depends on file size. Large files with many providers may take a few minutes.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let fileId = "{{ file_id }}";
+let pollInterval;
+let completed = false;
+
+function updateProgressBar(percentage) {
+    const progressBar = document.getElementById('progress-bar');
+    const progressPercentage = document.getElementById('progress-percentage');
+    
+    progressBar.style.width = percentage + '%';
+    progressPercentage.textContent = Math.round(percentage) + '%';
+}
+
+function updateStatusMessage(message) {
+    document.getElementById('status-message').textContent = message;
+}
+
+function updateStep(stepId, status) {
+    const step = document.getElementById(stepId);
+    const icon = step.querySelector('i');
+    const text = step.querySelector('span');
+    
+    if (status === 'active') {
+        icon.className = 'fas fa-spinner fa-spin text-blue-600 mr-3';
+        text.className = 'text-blue-600 font-medium';
+    } else if (status === 'complete') {
+        icon.className = 'fas fa-check-circle text-green-600 mr-3';
+        text.className = 'text-green-600';
+    } else {
+        icon.className = 'fas fa-circle text-gray-400 mr-3';
+        text.className = 'text-gray-600';
+    }
+}
+
+function getStepByProgress(percentage) {
+    if (percentage < 15) return 'step-validate';
+    if (percentage < 35) return 'step-process';
+    if (percentage < 60) return 'step-calculate';
+    if (percentage < 80) return 'step-audit';
+    if (percentage < 95) return 'step-generate';
+    return 'step-complete';
+}
+
+function markStepsComplete(currentStep) {
+    const steps = ['step-validate', 'step-process', 'step-calculate', 'step-audit', 'step-generate', 'step-complete'];
+    const currentIndex = steps.indexOf(currentStep);
+    
+    for (let i = 0; i < currentIndex; i++) {
+        updateStep(steps[i], 'complete');
+    }
+    updateStep(currentStep, 'active');
+}
+
+function pollProgress() {
+    if (completed) return;
+    
+    fetch(`/progress/${fileId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                console.error('Progress error:', data.error);
+                return;
+            }
+            
+            updateProgressBar(data.percentage);
+            updateStatusMessage(data.message);
+            
+            const currentStep = getStepByProgress(data.percentage);
+            markStepsComplete(currentStep);
+            
+            if (data.status === 'completed') {
+                completed = true;
+                clearInterval(pollInterval);
+                updateStep('step-complete', 'complete');
+                updateStatusMessage('Processing completed! Redirecting to results...');
+                
+                // Redirect to results page after a short delay
+                setTimeout(() => {
+                    window.location.href = `/results/${fileId}`;
+                }, 2000);
+            } else if (data.status === 'error') {
+                completed = true;
+                clearInterval(pollInterval);
+                updateStatusMessage('Error: ' + (data.error || 'Processing failed'));
+                updateProgressBar(0);
+                
+                // Show error styling
+                document.getElementById('progress-bar').className = 'bg-red-600 h-4 rounded-full';
+                document.getElementById('progress-percentage').className = 'text-lg font-bold text-red-600';
+            }
+        })
+        .catch(error => {
+            console.error('Error polling progress:', error);
+        });
+}
+
+// Start polling when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Poll immediately
+    pollProgress();
+    
+    // Then poll every 1 second
+    pollInterval = setInterval(pollProgress, 1000);
+});
+
+// Clean up interval when page unloads
+window.addEventListener('beforeunload', function() {
+    if (pollInterval) {
+        clearInterval(pollInterval);
+    }
+});
+</script>
+{% endblock %}

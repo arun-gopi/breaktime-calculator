@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}Configuration - Break Time Calculator{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-4xl mx-auto">
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-3xl font-bold text-gray-800">System Configuration</h1>
+                <a href="/config/reset" 
+                   class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded transition duration-200"
+                   onclick="return confirm('Are you sure you want to reset all configuration to defaults?')">
+                    Reset to Defaults
+                </a>
+            </div>
+
+            <form method="post" action="/config/update" class="space-y-8">
+                <!-- Break Time Configuration -->
+                <div class="border rounded-lg p-6">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">Break Time Rules</h2>
+                    <div class="grid md:grid-cols-2 gap-6">
+                        {% for config in break_configs %}
+                        {% if config.config_key != 'continuous_hours' %}
+                        <div>
+                            <label for="config_{{ config.config_key }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ config.config_key.replace('_', ' ').title() }}
+                                {% if config.config_type == 'float' %}(hours){% elif config.config_type == 'int' %}(minutes){% endif %}
+                            </label>
+                            <input type="{% if config.config_type in ['int', 'float'] %}number{% else %}text{% endif %}" 
+                                   id="config_{{ config.config_key }}" 
+                                   name="config_{{ config.config_key }}" 
+                                   value="{{ config.config_value }}"
+                                   {% if config.config_type == 'float' %}step="0.1"{% endif %}
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                   required>
+                            <p class="text-sm text-gray-500 mt-1">{{ config.description }}</p>
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Continuous Hours Setting -->
+                    {% for config in break_configs %}
+                    {% if config.config_key == 'continuous_hours' %}
+                    <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+                        <div class="flex items-center">
+                            <input type="hidden" name="config_{{ config.config_key }}" value="false">
+                            <input type="checkbox" 
+                                   id="config_{{ config.config_key }}" 
+                                   name="config_{{ config.config_key }}" 
+                                   value="true"
+                                   {% if config.config_value.lower() == 'true' %}checked{% endif %}
+                                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                            <label for="config_{{ config.config_key }}" class="ml-2 block text-sm font-medium text-gray-700">
+                                Include Drive Time in Break Calculations
+                            </label>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-2">{{ config.description }}</p>
+                        <div class="text-xs text-gray-500 mt-1">
+                            <strong>When enabled:</strong> 
+                            <ul class="list-disc ml-4 mt-1">
+                                <li>If DateTimeFrom/DateTimeTo columns are available: Uses actual time span from first start to last end time</li>
+                                <li>Otherwise: Uses total continuous hours (work + drive time) for break thresholds</li>
+                            </ul>
+                            <strong>When disabled:</strong> Only work hours (excluding drive time) are used for break thresholds
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                    
+                    <!-- Shift Gap Threshold Setting -->
+                    {% for config in break_configs %}
+                    {% if config.config_key == 'shift_gap_threshold' %}
+                    <div class="mt-4 p-4 bg-yellow-50 rounded-lg">
+                        <label for="config_{{ config.config_key }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Shift Gap Threshold (hours)
+                        </label>
+                        <input type="number" 
+                               id="config_{{ config.config_key }}" 
+                               name="config_{{ config.config_key }}" 
+                               value="{{ config.config_value }}"
+                               step="0.5"
+                               min="0.5"
+                               max="8.0"
+                               class="w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                               required>
+                        <p class="text-sm text-gray-600 mt-1">{{ config.description }}</p>
+                        <div class="text-xs text-gray-500 mt-1">
+                            Maximum time gap between work periods to consider them part of the same continuous shift. 
+                            <br><strong>Example:</strong> 2.0 hours allows lunch breaks up to 2 hours while maintaining shift continuity.
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+
+                <!-- Excluded Procedure Codes -->
+                <div class="border rounded-lg p-6">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">Excluded Procedure Codes</h2>
+                    {% for config in excluded_configs %}
+                    <div>
+                        <label for="config_{{ config.config_key }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Excluded Procedure Codes
+                        </label>
+                        <textarea id="config_{{ config.config_key }}" 
+                                  name="config_{{ config.config_key }}" 
+                                  rows="3"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  placeholder="Enter comma-separated procedure codes"
+                                  required>{{ config.config_value }}</textarea>
+                        <p class="text-sm text-gray-500 mt-1">{{ config.description }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Current Rules Preview -->
+                <div class="border rounded-lg p-6 bg-gray-50">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">Current Break Rules Preview</h2>
+                    <div class="space-y-2 text-sm">
+                        {% set break_1_threshold = break_configs|selectattr('config_key', 'equalto', 'break_threshold_1')|first %}
+                        {% set break_2_threshold = break_configs|selectattr('config_key', 'equalto', 'break_threshold_2')|first %}
+                        {% set break_3_threshold = break_configs|selectattr('config_key', 'equalto', 'break_threshold_3')|first %}
+                        {% set break_1_duration = break_configs|selectattr('config_key', 'equalto', 'break_duration_1')|first %}
+                        {% set break_2_duration = break_configs|selectattr('config_key', 'equalto', 'break_duration_2')|first %}
+                        {% set break_3_duration = break_configs|selectattr('config_key', 'equalto', 'break_duration_3')|first %}
+                        {% set continuous_hours = break_configs|selectattr('config_key', 'equalto', 'continuous_hours')|first %}
+                        
+                        <div class="mb-3 p-2 bg-blue-100 rounded">
+                            <strong>Calculation Method:</strong> 
+                            {% if continuous_hours and continuous_hours.config_value.lower() == 'true' %}
+                                Continuous hours (work time + drive time)
+                            {% else %}
+                                Work hours only (drive time excluded)
+                            {% endif %}
+                        </div>
+                        
+                        <p><strong>{{ break_1_threshold.config_value }}+ hours:</strong> {{ break_1_duration.config_value }} minutes break required</p>
+                        <p><strong>{{ break_2_threshold.config_value }}+ hours:</strong> {{ break_2_duration.config_value }} minutes total break required</p>
+                        <p><strong>{{ break_3_threshold.config_value }}+ hours:</strong> {{ break_3_duration.config_value }} minutes total break required</p>
+                        <p><strong>Less than {{ break_1_threshold.config_value }} hours:</strong> No break required</p>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-4">
+                    <a href="/" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded transition duration-200">
+                        Cancel
+                    </a>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded transition duration-200">
+                        Update Configuration
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Live preview updates
+document.addEventListener('DOMContentLoaded', function() {
+    const inputs = document.querySelectorAll('input[name^="config_break_"], input[name="config_continuous_hours"]');
+    
+    function updatePreview() {
+        const threshold1 = document.querySelector('input[name="config_break_threshold_1"]').value;
+        const threshold2 = document.querySelector('input[name="config_break_threshold_2"]').value;
+        const threshold3 = document.querySelector('input[name="config_break_threshold_3"]').value;
+        const duration1 = document.querySelector('input[name="config_break_duration_1"]').value;
+        const duration2 = document.querySelector('input[name="config_break_duration_2"]').value;
+        const duration3 = document.querySelector('input[name="config_break_duration_3"]').value;
+        const continuousHours = document.querySelector('input[name="config_continuous_hours"]:checked') !== null;
+        
+        const calculationMethod = continuousHours ? 
+            'Continuous hours (work time + drive time)' : 
+            'Work hours only (drive time excluded)';
+        
+        const preview = document.querySelector('.space-y-2');
+        preview.innerHTML = `
+            <div class="mb-3 p-2 bg-blue-100 rounded">
+                <strong>Calculation Method:</strong> ${calculationMethod}
+            </div>
+            <p><strong>${threshold1}+ hours:</strong> ${duration1} minutes break required</p>
+            <p><strong>${threshold2}+ hours:</strong> ${duration2} minutes total break required</p>
+            <p><strong>${threshold3}+ hours:</strong> ${duration3} minutes total break required</p>
+            <p><strong>Less than ${threshold1} hours:</strong> No break required</p>
+        `;
+    }
+    
+    inputs.forEach(input => {
+        input.addEventListener('input', updatePreview);
+        input.addEventListener('change', updatePreview);
+    });
+});
+</script>
+{% endblock %}
